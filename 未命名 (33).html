@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <!-- 手机核心视口配置，禁止缩放 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>手机横竖屏自适应展示</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        html, body {
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+        }
+        /* 全屏图片容器 */
+        .full-screen-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent; /* 去除手机点击高亮 */
+        }
+        /* 遮罩层 */
+        .mask {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 999;
+        }
+        /* 紧凑长方形弹窗（手机适配缩小） */
+        .verify-modal {
+            width: min(340px, 92vw);
+            background: #ffffff;
+            border-radius: 6px;
+            padding: 18px;
+            font-family: "Microsoft Yahei", system-ui, sans-serif;
+        }
+        .modal-title {
+            font-size: 16px;
+            color: #00a896;
+            font-weight: 600;
+            margin-bottom: 14px;
+            text-align: center;
+        }
+        .form-item {
+            margin-bottom: 10px;
+        }
+        .form-label {
+            display: block;
+            font-size: 13px;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        .input-box {
+            width: 100%;
+            height: 36px;
+            border: 1px solid #00c2a7;
+            border-radius: 4px;
+            padding: 0 10px;
+            font-size: 13px;
+            outline: none;
+        }
+        .input-box:focus {
+            box-shadow: 0 0 0 2px rgba(0,194,167,0.2);
+        }
+        .code-row {
+            display: flex;
+            gap: 8px;
+        }
+        .code-input {
+            flex: 1;
+        }
+        .send-code-btn {
+            width: 96px;
+            height: 36px;
+            background: #00c2a7;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            font-size: 13px;
+        }
+        .submit-btn {
+            width: 100%;
+            height: 40px;
+            margin-top: 6px;
+            background: #00c2a7;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .close-tip {
+            margin-top: 8px;
+            text-align: center;
+            font-size: 11px;
+            color: #999;
+        }
+    </style>
+</head>
+<body>
+    <img class="full-screen-img" id="mainImg" alt="展示图">
+
+    <!-- 验证弹窗 -->
+    <div class="mask" id="mask">
+        <div class="verify-modal">
+            <h3 class="modal-title">身份验证</h3>
+            <div class="form-item">
+                <label class="form-label">绑定手机号</label>
+                <input class="input-box" value="138********" disabled>
+            </div>
+            <div class="form-item">
+                <label class="form-label">验证码</label>
+                <div class="code-row">
+                    <input class="input-box code-input" placeholder="请输入6位验证码" id="codeInput">
+                    <button class="send-code-btn" id="sendCodeBtn">发送验证码</button>
+                </div>
+            </div>
+            <button class="submit-btn" id="confirmBtn">确认验证身份</button>
+            <div class="close-tip">点击弹窗外侧关闭</div>
+        </div>
+    </div>
+
+    <script>
+        const mask = document.getElementById('mask');
+        const mainImg = document.getElementById('mainImg');
+        const sendCodeBtn = document.getElementById('sendCodeBtn');
+        const codeInput = document.getElementById('codeInput');
+        const confirmBtn = document.getElementById('confirmBtn');
+
+        // 判断横竖屏，切换图片路径
+        function setImageByOrientation() {
+            // 宽 > 高 = 横屏，加载 /pic/1.png
+            if (window.innerWidth > window.innerHeight) {
+                mainImg.src = "/pic/1.png";
+            } else {
+                // 竖屏加载 /pic/2.png
+                mainImg.src = "/pic/2.png";
+            }
+        }
+
+        // 页面初始化执行一次
+        setImageByOrientation();
+        // 监听屏幕旋转，自动切换图片
+        window.addEventListener('resize', setImageByOrientation);
+        window.addEventListener('orientationchange', setImageByOrientation);
+
+        // 手机触摸/鼠标点击弹窗
+        mainImg.addEventListener('click', openModal);
+        mainImg.addEventListener('touchstart', openModal);
+        function openModal(e) {
+            e.preventDefault();
+            mask.style.display = 'flex';
+        }
+
+        // 点击遮罩关闭弹窗
+        mask.addEventListener('click', e => {
+            if (e.target === mask) mask.style.display = 'none';
+        });
+
+        // 发送验证码倒计时
+        sendCodeBtn.addEventListener('click', () => {
+            let count = 60;
+            sendCodeBtn.disabled = true;
+            sendCodeBtn.textContent = `${count}s重发`;
+            const timer = setInterval(() => {
+                count--;
+                sendCodeBtn.textContent = `${count}s重发`;
+                if (count <= 0) {
+                    clearInterval(timer);
+                    sendCodeBtn.disabled = false;
+                    sendCodeBtn.textContent = '发送验证码';
+                }
+            }, 1000);
+            alert('验证码已发送至 138********');
+        });
+
+        // 提交验证
+        confirmBtn.addEventListener('click', () => {
+            const code = codeInput.value.trim();
+            if (code.length !== 6) {
+                alert('请输入6位验证码');
+                return;
+            }
+            alert(`验证成功，验证码：${code}`);
+            mask.style.display = 'none';
+        });
+    </script>
+</body>
+</html>
